@@ -12,6 +12,7 @@ grails.project.dependency.resolution = {
         grailsCentral()
         mavenRepo "http://labs.technipelago.se/repo/crm-releases-local/"
         mavenRepo "http://labs.technipelago.se/repo/plugins-releases-local/"
+        mavenCentral()
     }
     dependencies {
         test "org.spockframework:spock-grails-support:0.7-groovy-2.0"
