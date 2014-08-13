@@ -29,6 +29,8 @@
             <f:with bean="crmSalesProjectStatus">
                 <f:field property="name" input-autofocus=""/>
                 <f:field property="description"/>
+                <f:field property="param"/>
+                <f:field property="icon"/>
                 <f:field property="orderIndex"/>
                 <f:field property="enabled"/>
             </f:with>
