@@ -73,7 +73,7 @@ class CrmSalesProjectStatusController {
     }
 
     def create() {
-        def crmSalesProjectStatus = crmSalesService.createAgreementStatus(params)
+        def crmSalesProjectStatus = crmSalesService.createSalesProjectStatus(params)
         switch (request.method) {
             case 'GET':
                 return [crmSalesProjectStatus: crmSalesProjectStatus]
