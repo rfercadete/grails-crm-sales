@@ -5,6 +5,7 @@ import grails.plugins.crm.core.SearchUtils
 import grails.plugins.crm.core.TenantUtils
 import org.apache.commons.lang.StringUtils
 import org.codehaus.groovy.grails.web.metaclass.BindDynamicMethod
+import grails.plugins.selection.Selectable
 
 /**
  * Sales Management service methods.
@@ -72,6 +73,7 @@ class CrmSalesService {
      * @param params pagination parameters
      * @return List or CrmSalesProject domain instances
      */
+    @Selectable
     def list(Map params = [:]) {
         list([:], params)
     }
@@ -83,6 +85,7 @@ class CrmSalesService {
      * @param params pagination parameters
      * @return List or CrmSalesProject domain instances
      */
+    @Selectable
     def list(Map query, Map params) {
         def tagged
 
@@ -126,6 +129,10 @@ class CrmSalesService {
                 }
             }
         }
+    }
+
+    CrmSalesProject getSalesProject(Long id) {
+        CrmSalesProject.findByIdAndTenantId(id, TenantUtils.tenant)
     }
 
     CrmSalesProject createSalesProject(Map params, boolean save = false) {
