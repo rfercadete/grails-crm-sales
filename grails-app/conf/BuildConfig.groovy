@@ -1,17 +1,14 @@
-grails.project.work.dir = "target"
+grails.project.class.dir = "target/classes"
+grails.project.test.class.dir = "target/test-classes"
+grails.project.test.reports.dir = "target/test-reports"
 grails.project.target.level = 1.6
-
-grails.project.repos.default = "crm"
 
 grails.project.dependency.resolution = {
     inherits("global") {}
     log "warn"
     legacyResolve false
     repositories {
-        grailsHome()
         grailsCentral()
-        mavenRepo "http://labs.technipelago.se/repo/crm-releases-local/"
-        mavenRepo "http://labs.technipelago.se/repo/plugins-releases-local/"
         mavenCentral()
     }
     dependencies {
@@ -26,35 +23,23 @@ grails.project.dependency.resolution = {
         }
         runtime ":hibernate:$grailsVersion"
 
-        test(":codenarc:0.18.1") { export = false }
+        test(":codenarc:0.21") { export = false }
         test(":spock:0.7") { export = false }
 
-        compile "grails.crm:crm-core:latest.integration"
-        compile "grails.crm:crm-security:latest.integration"
-        compile "grails.crm:crm-contact-lite:latest.integration"
-        compile "grails.crm:crm-product-ui:latest.integration"
+        compile ":crm-core:2.0.1"
+        compile ":crm-security:2.0.0"
+        compile ":crm-contact-ui:2.0.0"
+        //compile ":crm-product-ui:2.0.0"
 
-        runtime "grails.crm:crm-ui-bootstrap:latest.integration"
-        runtime "grails.crm:crm-tags:latest.integration"
-        runtime ":user-tag:latest.integration"
+        compile ":crm-ui-bootstrap:2.0.0"
+        compile ":crm-tags:2.0.0"
 
-        compile ":sequence-generator:latest.integration"
-        compile ":selection:latest.integration"
-        runtime ":selection-repository:latest.integration"
+        compile ":user-tag:0.6"
+        compile ":sequence-generator:1.0"
+        compile ":selection:0.9.7"
+        compile ":selection-repository:0.9.3"
     }
 }
 
-codenarc {
-    reports = {
-        CrmXmlReport('xml') {
-            outputFile = 'CodeNarcReport.xml'
-            title = 'Grails CRM CodeNarc Report'
-        }
-        CrmHtmlReport('html') {
-            outputFile = 'target/test-reports/CodeNarcReport.html'
-            title = 'Grails CRM CodeNarc Report'
-        }
-    }
-    processTestUnit = false
-    processTestIntegration = false
-}
+grails.plugin.location.'crm-product' = '../crm-product'
+grails.plugin.location.'crm-product-ui' = '../crm-product-ui'

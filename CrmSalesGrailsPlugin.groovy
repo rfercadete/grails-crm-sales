@@ -1,8 +1,8 @@
 import grails.plugins.crm.sales.CrmSalesProject
 
 class CrmSalesGrailsPlugin {
-    def groupId = "grails.crm"
-    def version = "1.0.0-SNAPSHOT"
+    def groupId = ""
+    def version = "2.0.0"
     def grailsVersion = "2.2 > *"
     def dependsOn = [:]
     def pluginExcludes = [
@@ -16,7 +16,7 @@ class CrmSalesGrailsPlugin {
     def description = '''\
 Sales and lead management for Grails CRM.
 '''
-    def documentation = "http://grails.org/plugin/crm-sales"
+    def documentation = "http://gr8crm.github.io/plugins/crm-sales/"
     def license = "APACHE"
     def organization = [name: "Technipelago AB", url: "http://www.technipelago.se/"]
     def issueManagement = [system: "github", url: "https://github.com/goeh/grails-crm-sales/issues"]
@@ -68,7 +68,7 @@ Sales and lead management for Grails CRM.
                         } else {
                             result = CrmSalesProject.findAllByContact(crmContact, [sort: 'number', order: 'asc'])
                         }
-                        [result: result]
+                        [result: result, totalCount: result.size()]
                     }]
             )
         }
