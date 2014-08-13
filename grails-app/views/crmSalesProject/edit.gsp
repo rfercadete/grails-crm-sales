@@ -121,6 +121,7 @@
                                 <f:field property="username">
                                     <g:select name="username" from="${metadata.userList}" optionKey="username"
                                               optionValue="name"
+                                              noSelection="${['': '']}"
                                               value="${crmSalesProject.username}" class="span11"/>
                                 </f:field>
                             </div>

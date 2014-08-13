@@ -19,6 +19,7 @@ class CrmSalesProjectController {
     def crmSalesService
     def crmContactService
     def selectionService
+    def userTagService
 
     def index() {
         // If any query parameters are specified in the URL, let them override the last query stored in session.
@@ -225,12 +226,42 @@ class CrmSalesProjectController {
         return [company, contact]
     }
 
-    def autocompleteContact(String name, Long parent, boolean company, boolean person) {
-        def result = crmContactService.list([name: name, parent: parent, company: company, person: person], [max: 100]).collect {
-            [it.fullName, it.id, it.parentId, it.parent?.toString(), it.name, it.firstName, it.lastName, it.address.toString(), it.telephone, it.email]
+    def autocompleteUsername() {
+        def query = params.q?.toLowerCase()
+        def list = crmSecurityService.getTenantUsers().findAll { user ->
+            if (query) {
+                return user.name.toLowerCase().contains(query) || user.username.toLowerCase().contains(query)
+            }
+            return true
+        }.collect { user ->
+            [id: user.username, text: user.name]
         }
-        WebUtils.noCache(response)
+        def result = [q: params.q, timestamp: System.currentTimeMillis(), length: list.size(), more: false, results: list]
+        WebUtils.defaultCache(response)
         render result as JSON
+    }
+
+    def createFavorite(Long id) {
+        def crmSalesProject = crmSalesService.getSalesProject(id)
+        if (!crmSalesProject) {
+            flash.error = message(code: 'crmSalesProject.not.found.message', args: [message(code: 'crmSalesProject.label', default: 'Opportunity'), id])
+            redirect action: 'index'
+            return
+        }
+        userTagService.tag(crmSalesProject, grailsApplication.config.crm.tag.favorite, crmSecurityService.currentUser?.username, TenantUtils.tenant)
+
+        redirect(action: 'show', id: params.id)
+    }
+
+    def deleteFavorite(Long id) {
+        def crmSalesProject = crmSalesService.getSalesProject(id)
+        if (!crmSalesProject) {
+            flash.error = message(code: 'crmSalesProject.not.found.message', args: [message(code: 'crmSalesProject.label', default: 'Opportunity'), id])
+            redirect action: 'index'
+            return
+        }
+        userTagService.untag(crmSalesProject, grailsApplication.config.crm.tag.favorite, crmSecurityService.currentUser?.username, TenantUtils.tenant)
+        redirect(action: 'show', id: params.id)
     }
 
     def export() {
