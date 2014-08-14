@@ -7,7 +7,7 @@ class CrmSalesGrailsPlugin {
     def dependsOn = [:]
     def pluginExcludes = [
             "grails-app/conf/ApplicationResources.groovy",
-            "src/groovy/grails/plugins/crm/sales/TestSecurityDelegate.groovy",
+            "src/groovy/grails/plugins/crm/sales/CrmSalesTestSecurityDelegate.groovy",
             "grails-app/views/error.gsp"
     ]
     def title = "Grails CRM Sales Management Plugin"

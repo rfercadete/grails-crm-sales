@@ -1,5 +1,7 @@
+import grails.plugins.crm.sales.CrmSalesTestSecurityDelegate
+
 // Beans used in integration tests.
 //
 beans = {
-    crmSecurityDelegate(grails.plugins.crm.sales.TestSecurityDelegate)
+    crmSecurityDelegate(CrmSalesTestSecurityDelegate)
 }
