@@ -25,11 +25,12 @@ Sales and lead management for Grails CRM.
     def features = {
         crmSales {
             description "Sales Management"
-            link controller: "crmSales", action: "index"
+            link controller: "crmSalesProject", action: "index"
             permissions {
-                guest "crmSales:index,list,show,createFavorite,deleteFavorite"
-                user "crmSales:*"
-                admin "crmSales,crmSalesProjectStatus"
+                guest "crmSalesProject:index,list,show,createFavorite,deleteFavorite,clearQuery,autocompleteUsername"
+                partner "crmSalesProject:index,list,show,createFavorite,deleteFavorite,clearQuery,autocompleteUsername"
+                user "crmSalesProject:*"
+                admin "crmSalesProject,crmSalesProjectStatus,crmSalesProjectRelationType:*"
             }
             statistics { tenant ->
                 def total = CrmSalesProject.countByTenantId(tenant)
@@ -52,25 +53,4 @@ Sales and lead management for Grails CRM.
         }
     }
 
-    def doWithApplicationContext = { applicationContext ->
-        def crmPluginService = applicationContext.crmPluginService
-        def crmContactService = applicationContext.containsBean('crmContactService') ? applicationContext.crmContactService : null
-        crmPluginService.registerView('crmMessage', 'index', 'tabs',
-                [id: "crmSalesProject", index: 300, label: "crmSalesProject.label",
-                        template: '/crmSalesProject/messages', plugin: "crm-sales"]
-        )
-        if (crmContactService) {
-            crmPluginService.registerView('crmContact', 'show', 'tabs',
-                    [id: "opportunities", permission: "crmSalesProject:list", label: "crmSalesProject.list.label", template: '/crmSalesProject/projects', plugin: "crm-sales", model: {
-                        def result
-                        if (crmContact.company) {
-                            result = CrmSalesProject.findAllByCustomer(crmContact, [sort: 'number', order: 'asc'])
-                        } else {
-                            result = CrmSalesProject.findAllByContact(crmContact, [sort: 'number', order: 'asc'])
-                        }
-                        [result: result, totalCount: result.size()]
-                    }]
-            )
-        }
-    }
 }
