@@ -18,8 +18,6 @@ class CrmSalesProject {
     String description
     CrmSalesProjectStatus status
     String username
-    CrmContact customer
-    CrmContact contact
     String currency
     Double value
     Float probability
@@ -27,6 +25,8 @@ class CrmSalesProject {
     java.sql.Date date2
     java.sql.Date date3
     java.sql.Date date4
+
+    static hasMany = [roles: CrmSalesProjectRole]
 
     static constraints = {
         number(maxSize: 20, blank: false, unique: 'tenantId')
@@ -38,7 +38,7 @@ class CrmSalesProject {
         customer()
         contact(nullable: true)
         currency(maxSize: 4, blank: false)
-        value(min:-999999999d, max:999999999d, scale:2)
+        value(min: -999999999d, max: 999999999d, scale: 2)
         probability(min: 0f, max: 1f, scale: 2)
         date1(nullable: true)
         date2(nullable: true)
@@ -53,7 +53,7 @@ class CrmSalesProject {
         product index: 'crm_sales_product_idx'
     }
 
-    static transients = ['weightedValue']
+    static transients = ['customer', 'contact', 'weightedValue']
 
     static taggable = true
     static attachmentable = true
@@ -61,8 +61,32 @@ class CrmSalesProject {
     static relatable = true
     static auditable = true
 
-    Double getWeightedValue() {
+    static final List<String> BIND_WHITELIST = [
+            'number',
+            'name',
+            'product',
+            'description',
+            'status',
+            'username',
+            'currency',
+            'value',
+            'probability',
+            'date1',
+            'date2',
+            'date3',
+            'date4'
+    ].asImmutable()
+
+    transient Double getWeightedValue() {
         (value && probability) ? value * probability : 0
+    }
+
+    transient CrmContact getCustomer() {
+        roles?.find { it.type?.param == 'customer' }?.contact
+    }
+
+    transient CrmContact getContact() {
+        roles?.find { it.type?.param == 'contact' }?.contact
     }
 
     String toString() {

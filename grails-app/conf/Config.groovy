@@ -22,3 +22,11 @@ log4j = {
 
     warn   'org.mortbay.log'
 }
+
+crm.feature.crmContact.required = true
+crm.feature.crmSales.required = true
+
+selection.gorm = true
+
+crm.currency.default = 'SEK'
+crm.sales.probability.default = 0.2

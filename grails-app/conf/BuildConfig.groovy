@@ -28,8 +28,8 @@ grails.project.dependency.resolution = {
 
         compile ":crm-core:2.0.1"
         compile ":crm-security:2.0.0"
+        compile ":crm-contact:2.0.2"
         compile ":crm-contact-ui:2.0.0"
-        //compile ":crm-product-ui:2.0.0"
 
         compile ":crm-ui-bootstrap:2.0.0"
         compile ":crm-tags:2.0.0"
@@ -40,6 +40,3 @@ grails.project.dependency.resolution = {
         compile ":selection-repository:0.9.3"
     }
 }
-
-grails.plugin.location.'crm-product' = '../crm-product'
-grails.plugin.location.'crm-product-ui' = '../crm-product-ui'

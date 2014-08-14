@@ -12,7 +12,10 @@ class CrmSalesProjectQueryCommand implements Serializable{
     String status
     String customer
     String username
-    String fromDate
-    String toDate
     String tags
+    String value
+    String date1
+    String date2
+    String date3
+    String date4
 }

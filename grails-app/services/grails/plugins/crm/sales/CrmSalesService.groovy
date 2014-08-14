@@ -1,23 +1,29 @@
 package grails.plugins.crm.sales
 
 import grails.events.Listener
+import grails.plugins.crm.core.DateUtils
+import grails.plugins.crm.contact.CrmContact
 import grails.plugins.crm.core.SearchUtils
 import grails.plugins.crm.core.TenantUtils
 import org.apache.commons.lang.StringUtils
 import org.codehaus.groovy.grails.web.metaclass.BindDynamicMethod
 import grails.plugins.selection.Selectable
 
+import java.text.DecimalFormat
+
 /**
  * Sales Management service methods.
  */
 class CrmSalesService {
 
+    def grailsApplication
     def crmSecurityService
     def crmTagService
     def messageSource
 
     @Listener(namespace = "crmSales", topic = "enableFeature")
     def enableFeature(event) {
+        println "crmSales.enableFeature $event"
         // event = [feature: feature, tenant: tenant, role:role, expires:expires]
         def tenant = crmSecurityService.getTenantInfo(event.tenant)
         def locale = tenant.locale
@@ -32,6 +38,9 @@ class CrmSalesService {
             createSalesProjectStatus([orderIndex: 40, param: "4", name: getStatusName('4', 'Deal', locale)], true)
             createSalesProjectStatus([orderIndex: 50, param: "5", name: getStatusName('5', 'Delivered', locale)], true)
             createSalesProjectStatus([orderIndex: 90, param: "9", name: getStatusName('9', 'Lost', locale)], true)
+
+            createSalesProjectRoleType(name: messageSource.getMessage("crmSalesProjectRoleType.name.customer", null, "Customer", locale), param: "customer", true)
+            createSalesProjectRoleType(name: messageSource.getMessage("crmSalesProjectRoleType.name.contact", null, "Contact", locale), param: "contact", true)
         }
     }
 
@@ -67,6 +76,18 @@ class CrmSalesService {
         return m
     }
 
+    List<CrmSalesProjectStatus> listSalesProjectStatus(String name, Map params = [:]) {
+        CrmSalesProjectStatus.createCriteria().list(params) {
+            eq('tenantId', TenantUtils.tenant)
+            if (name) {
+                or {
+                    ilike('name', SearchUtils.wildcard(name))
+                    eq('param', name)
+                }
+            }
+        }
+    }
+
     /**
      * Empty query = search all records.
      *
@@ -87,6 +108,8 @@ class CrmSalesService {
      */
     @Selectable
     def list(Map query, Map params) {
+        def locale = new Locale("sv", "SE")
+        def timezone = TimeZone.getTimeZone("MET")
         def tagged
 
         if (query.tags) {
@@ -128,8 +151,77 @@ class CrmSalesService {
                     }
                 }
             }
+            if (query.value) {
+                doubleQuery(delegate, 'value', query.value, locale)
+            }
+            if (query.date1) {
+                sqlDateQuery(delegate, 'date1', query.date1, locale, timezone)
+            }
+            if (query.date2) {
+                sqlDateQuery(delegate, 'date2', query.date2, locale, timezone)
+            }
+            if (query.date3) {
+                sqlDateQuery(delegate, 'date3', query.date3, locale, timezone)
+            }
+            if (query.date4) {
+                sqlDateQuery(delegate, 'date4', query.date4, locale, timezone)
+            }
         }
     }
+
+    /**
+     * Parse a query string and apply criteria for a Double property.
+     *
+     * @param criteriaDelegate
+     * @param prop the property to query
+     * @param query the query string, can contain &lt; &gt and -
+     * @param locale the locale to use for number parsing
+     */
+    private void doubleQuery(Object criteriaDelegate, String prop, String query, Locale locale) {
+        if (!query) {
+            return
+        }
+        final DecimalFormat format = DecimalFormat.getNumberInstance(locale)
+        if (query[0] == '<') {
+            criteriaDelegate.lt(prop, format.parse(query.substring(1)).doubleValue())
+        } else if (query[0] == '>') {
+            criteriaDelegate.gt(prop, format.parse(query.substring(1)).doubleValue())
+        } else if (query.contains('-')) {
+            def (from, to) = query.split('-').toList()
+            criteriaDelegate.between(prop, format.parse(from).doubleValue(), format.parse(to).doubleValue())
+        } else if (query.contains(' ')) {
+            def (from, to) = query.split(' ').toList()
+            criteriaDelegate.between(prop, format.parse(from).doubleValue(), format.parse(to).doubleValue())
+        } else {
+            criteriaDelegate.eq(prop, format.parse(query).doubleValue())
+        }
+    }
+
+    /**
+     * Parse a query string and apply criteria for a java.sql.Date property.
+     *
+     * @param criteriaDelegate
+     * @param prop the property to query
+     * @param query the query string, can contain &lt &gt and -
+     * @param locale the locale to use for date parsing
+     * @param timezone the timezone to use for date parsing
+     */
+    private void sqlDateQuery(Object criteriaDelegate, String prop, String query, Locale locale, TimeZone timezone) {
+        if (!query) {
+            return
+        }
+        if (query[0] == '<') {
+            criteriaDelegate.lt(prop, DateUtils.parseSqlDate(query.substring(1), timezone))
+        } else if (query[0] == '>') {
+            criteriaDelegate.gt(prop, DateUtils.parseSqlDate(query.substring(1), timezone))
+        } else if (query.contains(' ')) {
+            def (from, to) = query.split(' ').toList()
+            criteriaDelegate.between(prop, DateUtils.parseSqlDate(from, timezone), DateUtils.parseSqlDate(to, timezone))
+        } else {
+            criteriaDelegate.eq(prop, DateUtils.parseSqlDate(query, timezone))
+        }
+    }
+
 
     CrmSalesProject getSalesProject(Long id) {
         CrmSalesProject.findByIdAndTenantId(id, TenantUtils.tenant)
@@ -138,7 +230,11 @@ class CrmSalesService {
     CrmSalesProject createSalesProject(Map params, boolean save = false) {
         def tenant = TenantUtils.tenant
         def currentUser = crmSecurityService.currentUser
-        def m = new CrmSalesProject(params)
+        def customer = createSalesProjectRoleType(name: "Customer", true)
+        def contact = createSalesProjectRoleType(name: "Contact", true)
+        def m = new CrmSalesProject()
+        def args = [m, params, [include: CrmSalesProject.BIND_WHITELIST]]
+        new BindDynamicMethod().invoke(m, 'bind', args.toArray())
         m.tenantId = tenant
         if (!m.username) {
             m.username = currentUser?.username
@@ -153,16 +249,30 @@ class CrmSalesService {
             }
         }
         if (!m.currency) {
-            m.currency = "SEK"
+            m.currency = grailsApplication.config.crm.currency.default ?: "EUR"
         }
         if (m.probability == null) {
-            m.probability = 0.2
+            def probability = grailsApplication.config.crm.sales.probability.default
+            m.probability = probability != null ? probability : 1.0
         }
         if (m.value == null) {
             m.value = 0.0
         }
         if (!m.date1) {
             m.date1 = new java.sql.Date(System.currentTimeMillis())
+        }
+        if (params.customer) {
+            def role = new CrmSalesProjectRole(project: m, contact: params.customer, type: customer)
+            if (!role.hasErrors()) {
+                m.addToRoles(role)
+            }
+
+        }
+        if (params.contact) {
+            def role = new CrmSalesProjectRole(project: m, contact: params.contact, type: contact)
+            if (!role.hasErrors()) {
+                m.addToRoles(role)
+            }
         }
         if (save) {
             m.save(failOnError: true, flush: true)
@@ -173,5 +283,50 @@ class CrmSalesService {
             m.clearErrors()
         }
         return m
+    }
+
+    CrmSalesProjectRoleType getSalesProjectRoleType(String param) {
+        CrmSalesProjectRoleType.findByParamAndTenantId(param, TenantUtils.tenant, [cache: true])
+    }
+
+    CrmSalesProjectRoleType createSalesProjectRoleType(params, boolean save = false) {
+        if (!params.param) {
+            params.param = StringUtils.abbreviate(params.name?.toLowerCase(), 20)
+        }
+        def tenant = TenantUtils.tenant
+        def m = CrmSalesProjectRoleType.findByParamAndTenantId(params.param, tenant)
+        if (!m) {
+            m = new CrmSalesProjectRoleType()
+            def args = [m, params, [include: CrmSalesProjectRoleType.BIND_WHITELIST]]
+            new BindDynamicMethod().invoke(m, 'bind', args.toArray())
+            m.tenantId = tenant
+            if (params.enabled == null) {
+                m.enabled = true
+            }
+            if (save) {
+                m.save()
+            } else {
+                m.validate()
+                m.clearErrors()
+            }
+        }
+        return m
+    }
+
+    List<CrmSalesProject> findProjectsByContact(CrmContact contact, String role = null, Map params = [:]) {
+        CrmSalesProject.createCriteria().list(params) {
+            eq('tenantId', contact.tenantId) // This is not necessary, but hopefully it helps the query optimizer
+            roles {
+                eq('contact', contact)
+                if (role) {
+                    type {
+                        or {
+                            ilike('name', SearchUtils.wildcard(role))
+                            eq('param', role)
+                        }
+                    }
+                }
+            }
+        }
     }
 }
