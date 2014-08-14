@@ -10,7 +10,7 @@
         $(document).ready(function () {
             <crm:datepicker selector="form .date"/>
 
-            $("input[name='product']").autocomplete("${createLink(controller: 'crmProduct', action: 'autocomplete', params: [max: 20])}", {
+        $("input[name='product']").autocomplete("${createLink(controller: 'crmProduct', action: 'autocomplete', params: [max: 20])}", {
                 remoteDataType: 'json',
                 useCache: false,
                 filter: false,
@@ -137,34 +137,14 @@
                               optionKey="name" class="span12" noSelection="['': '']"/>
                 </div>
             </div>
-        </div>
-
-        <div class="span3">
-            <div class="control-group">
-                <label class="control-label">
-                    <g:message code="crmSalesProjectQueryCommand.fromDate.label"/>
-                </label>
-
-                <div class="controls">
-                    <div class="inline input-append date"
-                         data-date="${formatDate(type: 'date', date: cmd.fromDate ?: new Date())}">
-                        <g:textField name="fromDate" class="span12" size="10" value="${cmd.fromDate}"/><span
-                            class="add-on"><i class="icon-th"></i></span>
-                    </div>
-                </div>
-            </div>
 
             <div class="control-group">
                 <label class="control-label">
-                    <g:message code="crmSalesProjectQueryCommand.toDate.label"/>
+                    <g:message code="crmSalesProject.value.label"/>
                 </label>
 
                 <div class="controls">
-                    <div class="inline input-append date"
-                         data-date="${formatDate(type: 'date', date: cmd.toDate ?: new Date())}">
-                        <g:textField name="toDate" class="span12" size="10" value="${cmd.toDate}"/><span
-                            class="add-on"><i class="icon-th"></i></span>
-                    </div>
+                    <g:textField name="value" value="${cmd.value}" class="span12"/>
                 </div>
             </div>
 
@@ -175,6 +155,60 @@
 
                 <div class="controls">
                     <g:textField name="tags" value="${cmd.tags}" class="span12"/>
+                </div>
+            </div>
+        </div>
+
+        <div class="span3">
+            <div class="control-group">
+                <label class="control-label">
+                    <g:message code="crmSalesProject.date1.label"/>
+                </label>
+
+                <div class="controls">
+                    <div class="inline input-append date">
+                        <g:textField name="date1" class="span12" size="10" value="${cmd.date1}"/><span
+                            class="add-on"><i class="icon-th"></i></span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="control-group">
+                <label class="control-label">
+                    <g:message code="crmSalesProject.date2.label"/>
+                </label>
+
+                <div class="controls">
+                    <div class="inline input-append date">
+                        <g:textField name="date2" class="span12" size="10" value="${cmd.date2}"/><span
+                            class="add-on"><i class="icon-th"></i></span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="control-group">
+                <label class="control-label">
+                    <g:message code="crmSalesProject.date3.label"/>
+                </label>
+
+                <div class="controls">
+                    <div class="inline input-append date">
+                        <g:textField name="date3" class="span12" size="10" value="${cmd.date3}"/><span
+                            class="add-on"><i class="icon-th"></i></span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="control-group">
+                <label class="control-label">
+                    <g:message code="crmSalesProject.date4.label"/>
+                </label>
+
+                <div class="controls">
+                    <div class="inline input-append date">
+                        <g:textField name="date4" class="span12" size="10" value="${cmd.date4}"/><span
+                            class="add-on"><i class="icon-th"></i></span>
+                    </div>
                 </div>
             </div>
         </div>

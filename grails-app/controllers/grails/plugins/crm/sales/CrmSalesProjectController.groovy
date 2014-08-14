@@ -49,8 +49,8 @@ class CrmSalesProjectController {
         def result
         try {
             result = selectionService.select(uri, params)
-            if (result.size() == 1) {
-                redirect action: "show", id: result.head().ident()
+            if (result.totalCount == 1 && params.view != 'list') {
+                redirect action: "show", params: selectionService.createSelectionParameters(uri) + [id: result.head().ident()]
             } else {
                 [crmSalesProjectList: result, crmSalesProjectTotal: result.totalCount, selection: uri]
             }
@@ -86,8 +86,8 @@ class CrmSalesProjectController {
             redirect action: 'list'
             return
         }
-
-        [crmSalesProject: crmSalesProject]
+        def metadata = [statusList: crmSalesService.listSalesProjectStatus(null)]
+        [crmSalesProject: crmSalesProject, metadata: metadata, selection: params.getSelectionURI()]
     }
 
     def create() {
@@ -265,28 +265,37 @@ class CrmSalesProjectController {
     }
 
     def export() {
-        def user = crmSecurityService.getUserInfo(crmSecurityService.currentUser?.username)
-        def filename = message(code: 'crmSalesProject.label', default: 'Opportunity')
-        try {
-            def result = event(for: "crmSalesProject", topic: "export",
-                    data: params + [user: user, tenant: TenantUtils.tenant, locale: request.locale, filename: filename]).waitFor(60000)?.value
-            if (result?.file) {
-                try {
-                    WebUtils.inlineHeaders(response, result.contentType ?: "application/vnd.ms-excel", result.filename ?: filename)
-                    WebUtils.renderFile(response, result.file)
-                } finally {
-                    result.file.delete()
+        def user = crmSecurityService.getUserInfo()
+        def namespace = params.namespace ?: 'crmSalesProject'
+        if (request.post) {
+            def filename = message(code: 'crmSalesProject.label', default: 'Sales Opportunity')
+            try {
+                def topic = params.topic ?: 'export'
+                def result = event(for: namespace, topic: topic,
+                        data: params + [user: user, tenant: TenantUtils.tenant, locale: request.locale, filename: filename]).waitFor(60000)?.value
+                if (result?.file) {
+                    try {
+                        WebUtils.inlineHeaders(response, result.contentType, result.filename ?: namespace)
+                        WebUtils.renderFile(response, result.file)
+                    } finally {
+                        result.file.delete()
+                    }
+                    return null // Success
+                } else {
+                    flash.warning = message(code: 'crmSalesProject.export.nothing.message', default: 'Nothing was exported')
                 }
-                return null // Success
-            } else {
-                flash.warning = message(code: 'crmSalesProject.export.nothing.message', default: 'Nothing was exported')
+            } catch (TimeoutException te) {
+                flash.error = message(code: 'crmSalesProject.export.timeout.message', default: 'Export did not complete')
+            } catch (Exception e) {
+                log.error("Export event throwed an exception", e)
+                flash.error = message(code: 'crmSalesProject.export.error.message', default: 'Export failed due to an error', args: [e.message])
             }
-        } catch (TimeoutException te) {
-            flash.error = message(code: 'crmSalesProject.export.timeout.message', default: 'Export did not complete')
-        } catch (Exception e) {
-            log.error("Export event throwed an exception", e)
-            flash.error = message(code: 'crmSalesProject.export.error.message', default: 'Export failed due to an error', args: [e.message])
+            redirect(action: "index")
+        } else {
+            def uri = params.getSelectionURI()
+            def layouts = event(for: namespace, topic: (params.topic ?: 'exportLayout'),
+                    data: [tenant: TenantUtils.tenant, username: user.username, uri: uri, locale: request.locale]).waitFor(10000)?.values?.flatten()
+            [layouts: layouts, selection: uri]
         }
-        redirect(action: "index")
     }
 }

@@ -7,9 +7,12 @@
     <title><g:message code="crmSalesProject.show.title" args="[entityName, crmSalesProject]"/></title>
     <r:script>
         $(document).ready(function () {
-            // Position the cursor in first field when modals are opened.
-            $('.modal').on('shown', function () {
-                $('input:visible:enabled:first', this).focus();
+            $("a.crm-change-status").click(function(ev) {
+                ev.preventDefault();
+                var status = $(this).data('crm-id');
+                $.post("${createLink(action: 'changeStatus', id: crmSalesProject.id)}", {status: status}, function(data) {
+
+                });
             });
         });
     </r:script>
@@ -203,6 +206,9 @@
                 <span class="caret"></span>
             </button>
             <ul class="dropdown-menu">
+                <g:each in="${metadata.statusList}" var="status">
+                    <li><a href="#" data-crm-id="${status.ident()}" class="crm-change-status">${status.encodeAsHTML()}</a></li>
+                </g:each>
             </ul>
         </crm:button>
 
@@ -220,6 +226,13 @@
                 <span class="caret"></span>
             </button>
             <ul class="dropdown-menu">
+                <g:if test="${selection}">
+                    <li>
+                        <select:link action="list" selection="${selection}" params="${[view: 'list']}">
+                            <g:message code="crmSalesProject.show.result.label" default="Show result in list view"/>
+                        </select:link>
+                    </li>
+                </g:if>
                 <crm:hasPermission permission="crmSalesProject:createFavorite">
                     <crm:user>
                         <g:if test="${crmSalesProject.isUserTagged('favorite', username)}">
