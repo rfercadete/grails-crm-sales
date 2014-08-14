@@ -13,3 +13,7 @@ With CRM we mean features like:
 
 ## Lead Management Services for GR8 CRM
 This plugin provides domain classes and services for lead and sales management in GR8 CRM applications.
+
+### Documentation
+
+Complete documentation for this plugin can be found at [gr8crm.github.io](http://gr8crm.github.io/plugins/crm-sales/)
