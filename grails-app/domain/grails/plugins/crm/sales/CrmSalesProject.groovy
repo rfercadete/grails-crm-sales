@@ -78,7 +78,7 @@ class CrmSalesProject {
     ].asImmutable()
 
     transient Double getWeightedValue() {
-        (value && probability) ? value * probability : 0
+        (value && probability) ? Math.round(value * probability * 100) / 100 : 0
     }
 
     transient CrmContact getCustomer() {

@@ -15,15 +15,15 @@ class CrmSalesServiceSpec extends IntegrationSpec {
         def status = crmSalesService.createSalesProjectStatus(name: "Negotiation", true)
 
         when:
-        def project1 = crmSalesService.createSalesProject(name: "Test project", status: status, probability: 0.5, value: 100000, true)
+        def project1 = crmSalesService.createSalesProject(name: "Test project", status: status, probability: 0.5f, value: 100000, true)
         def project2 = crmSalesService.createSalesProject(name: "Dummy project", status: status, value: 100000, true)
 
         then:
         project1.ident()
         project1.currency == "SEK" // Defined in Config.groovy
         project1.weightedValue == 50000
-        project2.probability == 0.2 // Defined in Config.groovy
-        project2.weightedValue == 100000
+        project2.probability == 0.2f // Defined in Config.groovy
+        project2.weightedValue == 20000
         project1.customer == null
 
         when:
