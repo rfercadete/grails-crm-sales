@@ -19,8 +19,8 @@ Sales and lead management for Grails CRM.
     def documentation = "http://gr8crm.github.io/plugins/crm-sales/"
     def license = "APACHE"
     def organization = [name: "Technipelago AB", url: "http://www.technipelago.se/"]
-    def issueManagement = [system: "github", url: "https://github.com/goeh/grails-crm-sales/issues"]
-    def scm = [url: "https://github.com/goeh/grails-crm-sales"]
+    def issueManagement = [system: "github", url: "https://github.com/technipelago/grails-crm-sales/issues"]
+    def scm = [url: "https://github.com/technipelago/grails-crm-sales"]
 
     def features = {
         crmSales {
