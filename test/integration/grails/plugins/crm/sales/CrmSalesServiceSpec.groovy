@@ -22,7 +22,7 @@ class CrmSalesServiceSpec extends IntegrationSpec {
         project1.ident()
         project1.currency == "SEK" // Defined in Config.groovy
         project1.weightedValue == 50000
-        project2.probability == 1.0 // Defined in Config.groovy
+        project2.probability == 0.2 // Defined in Config.groovy
         project2.weightedValue == 100000
         project1.customer == null
 
