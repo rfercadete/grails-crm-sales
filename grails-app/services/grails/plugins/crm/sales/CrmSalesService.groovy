@@ -285,6 +285,23 @@ class CrmSalesService {
         return m
     }
 
+    CrmSalesProjectRole addRole(CrmSalesProject project, CrmContact contact, Object role, String description = null) {
+        def type
+        if (role instanceof CrmSalesProjectRoleType) {
+            type = role
+        } else {
+            type = getSalesProjectRoleType(role.toString())
+            if (!type) {
+                throw new IllegalArgumentException("[$role] is not a valid project role")
+            }
+        }
+        def roleInstance = new CrmSalesProjectRole(project: project, contact: contact, type: type, description: description)
+        if (!roleInstance.hasErrors()) {
+            project.addToRoles(roleInstance)
+        }
+        return roleInstance
+    }
+
     CrmSalesProjectRoleType getSalesProjectRoleType(String param) {
         CrmSalesProjectRoleType.findByParamAndTenantId(param, TenantUtils.tenant, [cache: true])
     }
@@ -313,6 +330,18 @@ class CrmSalesService {
         return m
     }
 
+    List<CrmSalesProjectRoleType> listSalesProjectRoleType(String name, Map params = [:]) {
+        CrmSalesProjectRoleType.createCriteria().list(params) {
+            eq('tenantId', TenantUtils.tenant)
+            if (name) {
+                or {
+                    ilike('name', SearchUtils.wildcard(name))
+                    eq('param', name)
+                }
+            }
+        }
+    }
+
     List<CrmSalesProject> findProjectsByContact(CrmContact contact, String role = null, Map params = [:]) {
         CrmSalesProject.createCriteria().list(params) {
             eq('tenantId', contact.tenantId) // This is not necessary, but hopefully it helps the query optimizer
@@ -324,6 +353,23 @@ class CrmSalesService {
                             ilike('name', SearchUtils.wildcard(role))
                             eq('param', role)
                         }
+                    }
+                }
+            }
+        }
+    }
+
+    List<CrmSalesProjectRole> findProjectRolesByContact(CrmContact contact, String role = null, Map params = [:]) {
+        CrmSalesProjectRole.createCriteria().list(params) {
+            project {
+                eq('tenantId', contact.tenantId) // This is not necessary, but maybe it helps the query optimizer
+            }
+            eq('contact', contact)
+            if (role) {
+                type {
+                    or {
+                        ilike('name', SearchUtils.wildcard(role))
+                        eq('param', role)
                     }
                 }
             }

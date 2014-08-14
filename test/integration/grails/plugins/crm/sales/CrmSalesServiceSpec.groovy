@@ -40,8 +40,8 @@ class CrmSalesServiceSpec extends IntegrationSpec {
         contact.ident()
 
         when:
-        project1.addToRoles(contact: technipelago, type: customer)
-        project1.addToRoles(contact: goran, type: contact)
+        crmSalesService.addRole(project1, technipelago, customer)
+        crmSalesService.addRole(project1, goran, "contact", "Nice guy")
         project1.save(flush:true)
 
         then:
