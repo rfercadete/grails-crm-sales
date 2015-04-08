@@ -35,8 +35,6 @@ class CrmSalesProject {
         description(maxSize: 2000, nullable: true, widget: 'textarea')
         status()
         username(maxSize: 80, nullable: true)
-        customer()
-        contact(nullable: true)
         currency(maxSize: 4, blank: false)
         value(min: -999999999d, max: 999999999d, scale: 2)
         probability(min: 0f, max: 1f, scale: 2)
@@ -53,7 +51,7 @@ class CrmSalesProject {
         product index: 'crm_sales_product_idx'
     }
 
-    static transients = ['customer', 'contact', 'weightedValue']
+    static transients = ['customer', 'contact', 'weightedValue', 'dao']
 
     static taggable = true
     static attachmentable = true
@@ -87,6 +85,23 @@ class CrmSalesProject {
 
     transient CrmContact getContact() {
         roles?.find { it.type?.param == 'contact' }?.contact
+    }
+
+    private Map<String, Object> getSelfProperties(List<String> props) {
+        props.inject([:]) { m, i ->
+            def v = this."$i"
+            if (v != null) {
+                m[i] = v
+            }
+            m
+        }
+    }
+
+    transient Map<String, Object> getDao() {
+        final Map<String, Object> map = getSelfProperties(BIND_WHITELIST - 'status')
+        map.tenant = tenantId
+        map.status = status.dao
+        return map
     }
 
     String toString() {

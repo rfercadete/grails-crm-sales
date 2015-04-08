@@ -1,8 +1,9 @@
 package grails.plugins.crm.sales
 
 import grails.events.Listener
-import grails.plugins.crm.core.DateUtils
 import grails.plugins.crm.contact.CrmContact
+import grails.plugins.crm.core.CrmValidationException
+import grails.plugins.crm.core.DateUtils
 import grails.plugins.crm.core.SearchUtils
 import grails.plugins.crm.core.TenantUtils
 import org.apache.commons.lang.StringUtils
@@ -18,6 +19,7 @@ class CrmSalesService {
 
     def grailsApplication
     def crmSecurityService
+    def crmContactService
     def crmTagService
     def messageSource
 
@@ -302,6 +304,26 @@ class CrmSalesService {
         return roleInstance
     }
 
+    boolean deleteRole(CrmSalesProject project, CrmContact contact, Object role = null) {
+        def type
+        if (role) {
+            if (role instanceof CrmSalesProjectRoleType) {
+                type = role
+            } else {
+                type = getSalesProjectRoleType(role.toString())
+            }
+        }
+        def roleInstance = project.roles?.find { CrmSalesProjectRole r ->
+            r.contactId == contact.id && (type == null || type == r.type)
+        }
+        if (roleInstance) {
+            project.removeFromRoles(roleInstance)
+            roleInstance.delete()
+            return true
+        }
+        return false
+    }
+
     CrmSalesProjectRoleType getSalesProjectRoleType(String param) {
         CrmSalesProjectRoleType.findByParamAndTenantId(param, TenantUtils.tenant, [cache: true])
     }
@@ -375,4 +397,147 @@ class CrmSalesService {
             }
         }
     }
+
+    CrmSalesProject save(CrmSalesProject crmSalesProject, Map params) {
+        def tenant = TenantUtils.tenant
+        if (crmSalesProject.tenantId) {
+            if (crmSalesProject.tenantId != tenant) {
+                throw new IllegalStateException("The current tenant is [$tenant] and the specified domain instance belongs to another tenant [${crmSalesProject.tenantId}]")
+            }
+        } else {
+            crmSalesProject.tenantId = tenant
+        }
+        def customerType = createSalesProjectRoleType(name: "Customer", true)
+        def contactType = createSalesProjectRoleType(name: "Contact", true)
+        def (company, contact) = fixCustomerParams(params)
+        def currentUser = crmSecurityService.getUserInfo()
+
+        try {
+            bindDate(crmSalesProject, 'date1', params.remove('date1'), currentUser?.timezone)
+            bindDate(crmSalesProject, 'date2', params.remove('date2'), currentUser?.timezone)
+            bindDate(crmSalesProject, 'date3', params.remove('date3'), currentUser?.timezone)
+            bindDate(crmSalesProject, 'date4', params.remove('date4'), currentUser?.timezone)
+        } catch (CrmValidationException e) {
+            throw new CrmValidationException(e.message, crmSalesProject, company, contact)
+        }
+
+        def args = [crmSalesProject, params, [include: CrmSalesProject.BIND_WHITELIST]]
+        new BindDynamicMethod().invoke(crmSalesProject, 'bind', args.toArray())
+
+        if (!crmSalesProject.username) {
+            crmSalesProject.username = currentUser?.username
+        }
+        if (!crmSalesProject.status) {
+            crmSalesProject.status = CrmSalesProject.withNewSession {
+                CrmSalesProjectStatus.createCriteria().get() {
+                    eq('tenantId', tenant)
+                    order 'orderIndex', 'asc'
+                    maxResults 1
+                }
+            }
+        }
+        if (!crmSalesProject.currency) {
+            crmSalesProject.currency = grailsApplication.config.crm.currency.default ?: "EUR"
+        }
+        if (crmSalesProject.probability == null) {
+            def probability = grailsApplication.config.crm.sales.probability.default
+            crmSalesProject.probability = probability != null ? probability : 1.0
+        }
+        if (crmSalesProject.value == null) {
+            crmSalesProject.value = 0.0
+        }
+        if (!crmSalesProject.date1) {
+            crmSalesProject.date1 = new java.sql.Date(System.currentTimeMillis())
+        }
+
+        def existingCompany = crmSalesProject.roles?.find { it.type == customerType }
+        if (company) {
+            if (existingCompany) {
+                existingCompany.contact = company
+            } else {
+                def role = new CrmSalesProjectRole(project: crmSalesProject, contact: company, type: customerType)
+                if (!role.hasErrors()) {
+                    crmSalesProject.addToRoles(role)
+                }
+            }
+        }
+
+        def existingContact = crmSalesProject.roles?.find { it.type == contactType }
+        if (contact) {
+            if (existingContact) {
+                existingContact.contact = contact
+            } else {
+                def role = new CrmSalesProjectRole(project: crmSalesProject, contact: contact, type: contactType)
+                if (!role.hasErrors()) {
+                    crmSalesProject.addToRoles(role)
+                }
+            }
+        }
+
+        if (crmSalesProject.save()) {
+            return crmSalesProject
+        }
+
+        throw new CrmValidationException('crmSalesProject.validation.error', crmSalesProject, company, contact)
+    }
+
+    private void bindDate(def target, String property, String value, TimeZone timezone = null) {
+        if (value) {
+            def tenant = crmSecurityService.getCurrentTenant()
+            def locale = tenant?.localeInstance ?: Locale.getDefault()
+            try {
+                target[property] = DateUtils.parseSqlDate(value, timezone)
+            } catch (Exception e) {
+                def entityName = messageSource.getMessage('crmSalesProject.label', null, 'Sales Project', locale)
+                def propertyName = messageSource.getMessage('crmSalesProject.' + property + '.label', null, property, locale)
+                target.errors.rejectValue(property, 'default.invalid.date.message', [propertyName, entityName, value.toString(), e.message].toArray(), "Invalid date: {2}")
+                throw new CrmValidationException('crmSalesProject.invalid.date.message', target)
+            }
+        } else {
+            target[property] = null
+        }
+    }
+
+    private List fixCustomerParams(Map params) {
+        def company
+        def contact
+        if (params.customer instanceof CrmContact) {
+            company = params.customer
+        } else if (params['customer.id']) {
+            company = crmContactService.getContact(Long.valueOf(params['customer.id'].toString()))
+        }
+        if (params.contact instanceof CrmContact) {
+            contact = params.contact
+        } else if (params['contact.id']) {
+            contact = crmContactService.getContact(Long.valueOf(params['contact.id'].toString()))
+        }
+
+        if (company == null) {
+            def primaryContact = contact?.primaryContact
+            if (primaryContact) {
+                // Company is not specified but the selected person is associated with a company (primaryContact)
+                // Set params as if the user had selected the person's primary contact in the company field.
+                company = primaryContact
+                params['customer.name'] = company.name
+                params['customer.id'] = company.id
+            }
+        }
+
+        // A company name is specified but it's not an existing company.
+        // Create a new company.
+        if (params['customer.name'] && !company) {
+            company = crmContactService.createCompany(name: params['customer.name']).save(failOnError: true, flush: true)
+            params['customer.id'] = company.id
+        }
+
+        // A person name is specified but it's not an existing person.
+        // Create a new person.
+        if (params['contact.name'] && !contact) {
+            contact = crmContactService.createPerson([firstName: params['contact.name'], related: company]).save(failOnError: true, flush: true)
+            params['contact.id'] = contact.id
+        }
+
+        return [company, contact]
+    }
+
 }
