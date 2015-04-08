@@ -2,7 +2,7 @@ import grails.plugins.crm.sales.CrmSalesProject
 
 class CrmSalesGrailsPlugin {
     def groupId = ""
-    def version = "2.0.0"
+    def version = "2.4.0-SNAPSHOT"
     def grailsVersion = "2.2 > *"
     def dependsOn = [:]
     def pluginExcludes = [
