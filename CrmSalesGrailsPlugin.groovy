@@ -27,8 +27,8 @@ Sales and lead management for Grails CRM.
             description "Sales Management"
             link controller: "crmSalesProject", action: "index"
             permissions {
-                guest "crmSalesProject:index,list,show,createFavorite,deleteFavorite,clearQuery,autocompleteUsername"
-                partner "crmSalesProject:index,list,show,createFavorite,deleteFavorite,clearQuery,autocompleteUsername"
+                guest "crmSalesProject:index,list,show,createFavorite,deleteFavorite,clearQuery,autocompleteUsername,autocompleteContact"
+                partner "crmSalesProject:index,list,show,createFavorite,deleteFavorite,clearQuery,autocompleteUsername,autocompleteContact"
                 user "crmSalesProject:*"
                 admin "crmSalesProject,crmSalesProjectStatus,crmSalesProjectRelationType:*"
             }
