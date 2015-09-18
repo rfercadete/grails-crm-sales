@@ -2,6 +2,7 @@ package grails.plugins.crm.sales
 
 import grails.plugins.crm.contact.CrmContact
 import grails.plugins.crm.core.AuditEntity
+import grails.plugins.crm.core.CrmEmbeddedAddress
 import grails.plugins.crm.core.TenantEntity
 import grails.plugins.sequence.SequenceEntity
 
@@ -26,6 +27,8 @@ class CrmSalesProject {
     java.sql.Date date3
     java.sql.Date date4
 
+    CrmEmbeddedAddress address
+
     static hasMany = [roles: CrmSalesProjectRole]
 
     static constraints = {
@@ -42,7 +45,10 @@ class CrmSalesProject {
         date2(nullable: true)
         date3(nullable: true)
         date4(nullable: true)
+        address(nullable: true)
     }
+
+    static embedded = ['address']
 
     static mapping = {
         sort 'number': 'asc'
@@ -101,6 +107,9 @@ class CrmSalesProject {
         final Map<String, Object> map = getSelfProperties(BIND_WHITELIST - 'status')
         map.tenant = tenantId
         map.status = status.dao
+        if(address != null) {
+            map.address = address.getDao()
+        }
         return map
     }
 
