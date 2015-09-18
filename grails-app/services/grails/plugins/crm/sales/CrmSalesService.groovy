@@ -4,6 +4,7 @@ import grails.events.Listener
 import grails.plugins.crm.contact.CrmContact
 import grails.plugins.crm.core.CrmValidationException
 import grails.plugins.crm.core.DateUtils
+import grails.plugins.crm.core.PagedResultList
 import grails.plugins.crm.core.SearchUtils
 import grails.plugins.crm.core.TenantUtils
 import org.apache.commons.lang.StringUtils
@@ -97,7 +98,7 @@ class CrmSalesService {
      * @return List or CrmSalesProject domain instances
      */
     @Selectable
-    def list(Map params = [:]) {
+    PagedResultList<CrmSalesProject> list(Map params = [:]) {
         list([:], params)
     }
 
@@ -109,64 +110,148 @@ class CrmSalesService {
      * @return List or CrmSalesProject domain instances
      */
     @Selectable
-    def list(Map query, Map params) {
+    synchronized PagedResultList<CrmSalesProject> list(Map query, Map params) {
+        def result
+        try {
+            def totalCount = CrmSalesProject.createCriteria().get {
+                projectCriteria.delegate = delegate
+                projectCriteria(query, true, null)
+            }
+            if (!params.sort) params.sort = 'number'
+            if (!params.order) params.order = 'asc'
+            def ids = CrmSalesProject.createCriteria().list() {
+                projectCriteria.delegate = delegate
+                projectCriteria(query, false, params.sort)
+                if (params.max != null) {
+                    maxResults(params.max as Integer)
+                }
+                if (params.offset != null) {
+                    firstResult(params.offset as Integer)
+                }
+                order(params.sort, params.order)
+            }
+            result = ids.size() ? ids.collect { CrmSalesProject.get(it[0]) } : []
+            result = new PagedResultList<CrmSalesProject>(result, totalCount.intValue())
+        } finally {
+            projectCriteria.delegate = this
+        }
+        return result
+    }
+
+    private static final Set<Long> NO_RESULT = [0L] as Set // A query value that will find nothing
+
+    private Closure projectCriteria = { query, count, sort ->
         def locale = new Locale("sv", "SE")
         def timezone = TimeZone.getTimeZone("MET")
-        def tagged
 
+        Set<Long> ids = [] as Set
         if (query.tags) {
-            tagged = crmTagService.findAllByTag(CrmSalesProject, query.tags).collect { it.id }
-            if (!tagged) {
-                tagged = [0L] // Force no search result.
+            def tagged = crmTagService.findAllIdByTag(CrmSalesProject, query.tags)
+            if (tagged) {
+                ids.addAll(tagged)
+            } else {
+                ids = NO_RESULT
             }
         }
 
-        CrmSalesProject.createCriteria().list(params) {
-            eq('tenantId', TenantUtils.tenant)
-            if (tagged) {
-                inList('id', tagged)
+        projections {
+            if (count) {
+                countDistinct "id"
+            } else {
+                groupProperty "id"
+                groupProperty sort
             }
-            if (query.number) {
-                ilike('number', SearchUtils.wildcard(query.number))
+        }
+
+        eq('tenantId', TenantUtils.tenant)
+        if (ids) {
+            inList('id', ids)
+        }
+
+        if (query.number) {
+            ilike('number', SearchUtils.wildcard(query.number))
+        }
+        if (query.name) {
+            ilike('name', SearchUtils.wildcard(query.name))
+        }
+        if (query.product) {
+            ilike('product', SearchUtils.wildcard(query.product))
+        }
+        if (query.username) {
+            ilike('username', SearchUtils.wildcard(query.username))
+        }
+        if (query.status) {
+            status {
+                ilike('name', SearchUtils.wildcard(query.status))
             }
-            if (query.name) {
-                ilike('name', SearchUtils.wildcard(query.name))
-            }
-            if (query.product) {
-                ilike('product', SearchUtils.wildcard(query.product))
-            }
-            if (query.username) {
-                ilike('username', SearchUtils.wildcard(query.username))
-            }
-            if (query.status) {
-                status {
-                    ilike('name', SearchUtils.wildcard(query.status))
+        }
+
+        // TODO this will find any project role, not just customer.
+        if (query.customer) {
+            roles {
+                contact {
+                    ilike('name', SearchUtils.wildcard(query.customer))
                 }
             }
-            if (query.customer) {
-                or {
-                    customer {
-                        ilike('name', SearchUtils.wildcard(query.customer))
-                    }
-                    contact {
-                        ilike('name', SearchUtils.wildcard(query.customer))
-                    }
-                }
+        }
+
+        if (query.address1) {
+            ilike('address.address1', SearchUtils.wildcard(query.address1))
+        }
+        if (query.address2) {
+            ilike('address.address2', SearchUtils.wildcard(query.address2))
+        }
+        if (query.address3) {
+            ilike('address.address3', SearchUtils.wildcard(query.address3))
+        }
+        if (query.postalCode) {
+            ilike('address.postalCode', SearchUtils.wildcard(query.postalCode))
+        }
+        if (query.city) {
+            ilike('address.city', SearchUtils.wildcard(query.city))
+        }
+        if (query.region) {
+            ilike('address.region', SearchUtils.wildcard(query.region))
+        }
+        if (query.country) {
+            ilike('address.country', SearchUtils.wildcard(query.country))
+        }
+
+        if (query.value) {
+            doubleQuery(delegate, 'value', query.value, locale)
+        }
+        if (query.date1) {
+            sqlDateQuery(delegate, 'date1', query.date1, locale, timezone)
+        }
+        if (query.date2) {
+            sqlDateQuery(delegate, 'date2', query.date2, locale, timezone)
+        }
+        if (query.date3) {
+            sqlDateQuery(delegate, 'date3', query.date3, locale, timezone)
+        }
+        if (query.date4) {
+            sqlDateQuery(delegate, 'date4', query.date4, locale, timezone)
+        }
+
+        if (query.dateCreated) {
+            if (query.dateCreated[0] == '<') {
+                lt('dateCreated', DateUtils.getDateSpan(DateUtils.parseDate(query.dateCreated.substring(1)))[0])
+            } else if (query.dateCreated[0] == '>') {
+                gt('dateCreated', DateUtils.getDateSpan(DateUtils.parseDate(query.dateCreated.substring(1)))[1])
+            } else {
+                def (am, pm) = DateUtils.getDateSpan(DateUtils.parseDate(query.dateCreated))
+                between('dateCreated', am, pm)
             }
-            if (query.value) {
-                doubleQuery(delegate, 'value', query.value, locale)
-            }
-            if (query.date1) {
-                sqlDateQuery(delegate, 'date1', query.date1, locale, timezone)
-            }
-            if (query.date2) {
-                sqlDateQuery(delegate, 'date2', query.date2, locale, timezone)
-            }
-            if (query.date3) {
-                sqlDateQuery(delegate, 'date3', query.date3, locale, timezone)
-            }
-            if (query.date4) {
-                sqlDateQuery(delegate, 'date4', query.date4, locale, timezone)
+        }
+
+        if (query.lastUpdated) {
+            if (query.lastUpdated[0] == '<') {
+                lt('lastUpdated', DateUtils.getDateSpan(DateUtils.parseDate(query.lastUpdated.substring(1)))[0])
+            } else if (query.lastUpdated[0] == '>') {
+                gt('lastUpdated', DateUtils.getDateSpan(DateUtils.parseDate(query.lastUpdated.substring(1)))[1])
+            } else {
+                def (am, pm) = DateUtils.getDateSpan(DateUtils.parseDate(query.lastUpdated))
+                between('lastUpdated', am, pm)
             }
         }
     }

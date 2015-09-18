@@ -131,4 +131,47 @@ class CrmSalesServiceSpec extends IntegrationSpec {
         e.domainInstance == project1
         e.domainInstance.errors
     }
+
+    def "find sales project"() {
+        given:
+        def company = crmContactService.createRelationType(name: "Company", true)
+        def technipelago = crmContactService.createCompany(name: "Technipelago AB", true)
+        def goran = crmContactService.createPerson(firstName: "Goran", lastName: "Ehrsson", related: [technipelago, company], true)
+        def customer = crmSalesService.createSalesProjectRoleType(name: "Customer", true)
+        def contact = crmSalesService.createSalesProjectRoleType(name: "Contact", true)
+        def status = crmSalesService.createSalesProjectStatus(name: "Negotiation", true)
+
+        when:
+        def project1 = crmSalesService.createSalesProject(customer: technipelago, contact: goran, name: "Test project", status: status, probability: 0.5f, value: 100000, true)
+        def project2 = crmSalesService.createSalesProject(customer: technipelago, name: "Dummy project", status: status, value: 100000, true)
+
+        then:
+        project1.ident()
+        project1.currency == "SEK" // Defined in Config.groovy
+        project1.weightedValue == 50000
+        project1.customer != null
+        project1.contact != null
+        project2.probability == 0.2f // Defined in Config.groovy
+        project2.weightedValue == 20000
+        project2.customer != null
+        project2.contact == null
+
+        when:
+        def result1 = crmSalesService.list([customer: 'Technipelago'], [sort: 'number', order: 'asc'])
+
+        then:
+        result1.size() == 2
+
+        when:
+        def result2 = crmSalesService.list([customer: 'Goran'], [sort: 'number', order: 'asc'])
+
+        then:
+        result2.size() == 1
+
+        when:
+        def result3 = crmSalesService.list([customer: 'Sven'], [sort: 'number', order: 'asc'])
+
+        then:
+        result3.size() == 0
+    }
 }
