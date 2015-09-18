@@ -43,9 +43,11 @@ in your BuildConfig.groovy if you want end-user lead management features.
 
 image::sales-domain.png[Sales Management Domain Model]
 
-=== CrmSalesProject
+== CrmSalesProject
 
-[options="header",cols="25,25,50"]
+=== Properties
+
+[options="header",cols="15,25,60"]
 |===
 | Property          | Type                  | Description
 | number            | String                | Project ID
@@ -56,16 +58,32 @@ image::sales-domain.png[Sales Management Domain Model]
 | status            | CrmSalesProjectStatus | Status of the project
 | currency          | String                | Currency code
 | value             | Double                | Total (potential) value of the deal
-| probability       | Float                 | Estimated probability (0=Lost deal, 0.6=Big chance, 1.0=Closed deal)
+| probability       | Float                 | Estimated probability (0=Lost deal, 0.6=High probability, 1.0=Closed deal)
 | date1             | Date                  | Generic date (ex: date of initial contact)
 | date2             | Date                  | Generic date (ex: order date)
 | date3             | Date                  | Generic date (ex: revenue date)
 | date4             | Date                  | Generic date (ex: delivery date)
+| address           | CrmEmbeddedAddress    | Embedded address entity (ex: for real estate businesses)
 |===
+
+=== Methods
+
+Double getWeightedValue()::
+Weighted value of the project use the project's `probability` value to calculate a weighted value.
+The weighted value is used in forecasts to get a more realistic value than the total value.
+Example: A deal with 50% probability is only valued half of it total (potential) value.
+
+CrmContact getCustomer()::
+A convenience method to get the associated contact (organisation) with the role type `customer`.
+
+CrmContact getContact()::
+A convenience method to get the associated contact (person) with the role type `contact`.
 
 == CrmSalesService
 
 Like most other {gr8crm} plugins this plugin have a main service with methods for creating, searching and updating sales projects.
+
+=== Methods
 
 CrmSalesProject createSalesProject(Map params, boolean save = false)::
 Create a new sales project.
