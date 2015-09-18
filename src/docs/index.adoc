@@ -47,15 +47,53 @@ image::sales-domain.png[Sales Management Domain Model]
 
 [options="header",cols="25,25,50"]
 |===
-| Property          | Type            | Description
-| number            | String          | Project ID
-| name              | String          | Project name
-| description       | String          | A longer description of the project (max 2000 characters)
+| Property          | Type                  | Description
+| number            | String                | Project ID
+| name              | String                | Project name
+| product           | String                | Name of product that's included in the deal
+| description       | String                | A longer description of the project (max 2000 characters)
+| username          | String                | The sales representative responsible for this deal
+| status            | CrmSalesProjectStatus | Status of the project
+| currency          | String                | Currency code
+| value             | Double                | Total (potential) value of the deal
+| probability       | Float                 | Estimated probability (0=Lost deal, 0.6=Big chance, 1.0=Closed deal)
+| date1             | Date                  | Generic date (ex: date of initial contact)
+| date2             | Date                  | Generic date (ex: order date)
+| date3             | Date                  | Generic date (ex: revenue date)
+| date4             | Date                  | Generic date (ex: delivery date)
 |===
 
 == CrmSalesService
 
 Like most other {gr8crm} plugins this plugin have a main service with methods for creating, searching and updating sales projects.
+
+CrmSalesProject createSalesProject(Map params, boolean save = false)::
+Create a new sales project.
+
+[source,groovy]
+.Example.groovy
+----
+def quoteStatus = crmSalesService.createSalesProjectStatus(name: 'Quote sent', true)
+def acme = crmContactService.createCompany(name: 'ACME Inc.', email: 'info@acme.com',
+        address: [address1: '123 Demo Street', city: 'Groovytown', country: 'US'], true)
+def deal = crmSalesService.createSalesProject(name: 'Pump station', customer: acme,
+        status: quoteStatus, value: 250000, currency: 'USD', probability: 0.6, true)
+
+assert deal.customer.name == 'ACME Inc.'
+assert deal.weightedValue == 150000
+----
+
+NOTE: If *currency* is not specified in `params` the default currency is used, configurable with `crm.currency.default`.
+If not configured at all then *EUR* will is used as default currency.
+
+def list(Map query, Map params)::
+List sales projects.
+
+[source,groovy]
+.FindMyDeals.groovy
+----
+List myDeals = crmSalesService.list([username: 'myself'], [sort: 'date1', order: 'desc'])
+----
 
 == Changes
 
