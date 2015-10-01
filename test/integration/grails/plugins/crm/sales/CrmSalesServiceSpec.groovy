@@ -13,7 +13,7 @@ class CrmSalesServiceSpec extends IntegrationSpec {
 
     def "create sales project"() {
         given:
-        def status = crmSalesService.createSalesProjectStatus(name: "Negotiation", true)
+        def status = crmSalesService.createSalesProjectStatus(name: "Negotiation", param: "3", true)
 
         when:
         def project1 = crmSalesService.createSalesProject(name: "Test project", status: status, probability: 0.5f, value: 100000, true)
@@ -57,7 +57,7 @@ class CrmSalesServiceSpec extends IntegrationSpec {
 
     def "save sales project"() {
         given:
-        def status = crmSalesService.createSalesProjectStatus(name: "Negotiation", true)
+        def status = crmSalesService.createSalesProjectStatus(name: "Negotiation", param: "3", true)
 
         when:
         def project1 = crmSalesService.save(new CrmSalesProject(), [name: "Test project", status: status, probability: 0.5f, value: 100000])
@@ -137,13 +137,12 @@ class CrmSalesServiceSpec extends IntegrationSpec {
         def company = crmContactService.createRelationType(name: "Company", true)
         def technipelago = crmContactService.createCompany(name: "Technipelago AB", true)
         def goran = crmContactService.createPerson(firstName: "Goran", lastName: "Ehrsson", related: [technipelago, company], true)
-        def customer = crmSalesService.createSalesProjectRoleType(name: "Customer", true)
-        def contact = crmSalesService.createSalesProjectRoleType(name: "Contact", true)
-        def status = crmSalesService.createSalesProjectStatus(name: "Negotiation", true)
+        def status1 = crmSalesService.createSalesProjectStatus(name: "Presentation", param: "2", true)
+        def status2 = crmSalesService.createSalesProjectStatus(name: "Negotiation", param: "3", true)
 
         when:
-        def project1 = crmSalesService.createSalesProject(customer: technipelago, contact: goran, name: "Test project", status: status, probability: 0.5f, value: 100000, true)
-        def project2 = crmSalesService.createSalesProject(customer: technipelago, name: "Dummy project", status: status, value: 100000, true)
+        def project1 = crmSalesService.createSalesProject(customer: technipelago, contact: goran, name: "Test project", status: status1, probability: 0.5f, value: 100000, true)
+        def project2 = crmSalesService.createSalesProject(customer: technipelago, name: "Dummy project", status: status2, value: 100000, true)
 
         then:
         project1.ident()
