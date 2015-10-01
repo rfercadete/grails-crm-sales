@@ -2,7 +2,7 @@ import grails.plugins.crm.sales.CrmSalesProject
 
 class CrmSalesGrailsPlugin {
     def groupId = ""
-    def version = "2.4.0-SNAPSHOT"
+    def version = "2.4.0"
     def grailsVersion = "2.2 > *"
     def dependsOn = [:]
     def pluginExcludes = [
@@ -10,11 +10,11 @@ class CrmSalesGrailsPlugin {
             "src/groovy/grails/plugins/crm/sales/CrmSalesTestSecurityDelegate.groovy",
             "grails-app/views/error.gsp"
     ]
-    def title = "Grails CRM Sales Management Plugin"
+    def title = "GR8 CRM Sales/Lead Management Plugin"
     def author = "Goran Ehrsson"
     def authorEmail = "goran@technipelago.se"
     def description = '''\
-Sales and lead management for Grails CRM.
+Sales and lead management for GR8 CRM applications.
 '''
     def documentation = "http://gr8crm.github.io/plugins/crm-sales/"
     def license = "APACHE"

@@ -115,7 +115,7 @@ List myDeals = crmSalesService.list([username: 'myself'], [sort: 'date1', order:
 
 == Changes
 
-2.0.0:: First public release
+2.4.0:: First public release
 
 == License
 
