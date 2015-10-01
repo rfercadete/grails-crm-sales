@@ -14,7 +14,7 @@ class CrmSalesProjectRole {
     static belongsTo = [project: CrmSalesProject]
 
     static constraints = {
-        contact(unique: 'project')
+        contact(unique: ['type', 'project'])
         type()
         description(maxSize: 2000, nullable: true, widget: 'textarea')
     }

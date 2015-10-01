@@ -509,9 +509,7 @@ class CrmSalesService {
         def args = [crmSalesProject, params, [include: CrmSalesProject.BIND_WHITELIST]]
         new BindDynamicMethod().invoke(crmSalesProject, 'bind', args.toArray())
 
-        if (!crmSalesProject.username) {
-            crmSalesProject.username = currentUser?.username
-        }
+        
         if (!crmSalesProject.status) {
             crmSalesProject.status = CrmSalesProject.withNewSession {
                 CrmSalesProjectStatus.createCriteria().get() {
