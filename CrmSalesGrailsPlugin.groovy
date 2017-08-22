@@ -2,7 +2,7 @@ import grails.plugins.crm.sales.CrmSalesProject
 
 class CrmSalesGrailsPlugin {
     def groupId = ""
-    def version = "2.4.0"
+    def version = "2.4.1-SNAPSHOT"
     def grailsVersion = "2.2 > *"
     def dependsOn = [:]
     def pluginExcludes = [
@@ -30,7 +30,7 @@ Sales and lead management for GR8 CRM applications.
                 guest "crmSalesProject:index,list,show,createFavorite,deleteFavorite,clearQuery,autocompleteUsername,autocompleteContact"
                 partner "crmSalesProject:index,list,show,createFavorite,deleteFavorite,clearQuery,autocompleteUsername,autocompleteContact"
                 user "crmSalesProject:*"
-                admin "crmSalesProject,crmSalesProjectStatus,crmSalesProjectRelationType:*"
+                admin "crmSalesProject,crmSalesProjectStatus,crmSalesProjectRoleType:*"
             }
             statistics { tenant ->
                 def total = CrmSalesProject.countByTenantId(tenant)
