@@ -3,8 +3,10 @@ package grails.plugins.crm.sales
 import grails.plugins.crm.contact.CrmContact
 import grails.plugins.crm.core.AuditEntity
 import grails.plugins.crm.core.CrmEmbeddedAddress
+import grails.plugins.crm.core.Pair
 import grails.plugins.crm.core.TenantEntity
 import grails.plugins.sequence.SequenceEntity
+import grails.util.Holders
 
 /**
  * This domain class represents a lead or business deal.
@@ -29,7 +31,7 @@ class CrmSalesProject {
 
     CrmEmbeddedAddress address
 
-    static hasMany = [roles: CrmSalesProjectRole]
+    static hasMany = [roles: CrmSalesProjectRole, items: CrmSalesProjectItem]
 
     static constraints = {
         number(maxSize: 20, blank: false, unique: 'tenantId')
@@ -55,6 +57,7 @@ class CrmSalesProject {
         number index: 'crm_sales_number_idx'
         name index: 'crm_sales_name_idx'
         product index: 'crm_sales_product_idx'
+        items sort: 'orderIndex', 'asc'
     }
 
     static transients = ['customer', 'contact', 'weightedValue', 'dao']
@@ -91,6 +94,33 @@ class CrmSalesProject {
 
     transient CrmContact getContact() {
         roles?.find { it.type?.param == 'contact' }?.contact
+    }
+
+    def beforeValidate() {
+        if (!number) {
+            number = getNextSequenceNumber()
+        }
+
+        if(! currency) {
+            currency = Holders.getConfig().crm.currency.default ?: 'EUR'
+        }
+
+        value = calculateAmount()
+    }
+
+    protected Double calculateAmount() {
+        Double sum
+        // If we have no items we just return whatever in value.
+        // This way we can have a project without items.
+        if(items == null || items.isEmpty()) {
+            sum = this.value ?: 0
+        } else {
+            sum = 0
+            for (item in items) {
+                sum += item.totalPrice
+            }
+        }
+        sum
     }
 
     private Map<String, Object> getSelfProperties(List<String> props) {

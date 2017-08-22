@@ -8,8 +8,8 @@ import grails.plugins.crm.core.PagedResultList
 import grails.plugins.crm.core.SearchUtils
 import grails.plugins.crm.core.TenantUtils
 import org.apache.commons.lang.StringUtils
-import org.codehaus.groovy.grails.web.metaclass.BindDynamicMethod
 import grails.plugins.selection.Selectable
+import org.grails.databinding.SimpleMapDataBindingSource
 
 import java.text.DecimalFormat
 
@@ -23,10 +23,10 @@ class CrmSalesService {
     def crmContactService
     def crmTagService
     def messageSource
+    def grailsWebDataBinder
 
     @Listener(namespace = "crmSales", topic = "enableFeature")
     def enableFeature(event) {
-        println "crmSales.enableFeature $event"
         // event = [feature: feature, tenant: tenant, role:role, expires:expires]
         def tenant = crmSecurityService.getTenantInfo(event.tenant)
         def locale = tenant.locale
@@ -63,8 +63,7 @@ class CrmSalesService {
         def m = CrmSalesProjectStatus.findByParamAndTenantId(params.param, tenant)
         if (!m) {
             m = new CrmSalesProjectStatus()
-            def args = [m, params, [include: CrmSalesProjectStatus.BIND_WHITELIST]]
-            new BindDynamicMethod().invoke(m, 'bind', args.toArray())
+            grailsWebDataBinder.bind(m, params as SimpleMapDataBindingSource, null, CrmSalesProjectStatus.BIND_WHITELIST, null, null)
             m.tenantId = tenant
             if (params.enabled == null) {
                 m.enabled = true
@@ -320,8 +319,7 @@ class CrmSalesService {
         def customer = createSalesProjectRoleType(name: "Customer", true)
         def contact = createSalesProjectRoleType(name: "Contact", true)
         def m = new CrmSalesProject()
-        def args = [m, params, [include: CrmSalesProject.BIND_WHITELIST]]
-        new BindDynamicMethod().invoke(m, 'bind', args.toArray())
+        grailsWebDataBinder.bind(m, params as SimpleMapDataBindingSource, null, CrmSalesProject.BIND_WHITELIST, null, null)
         m.tenantId = tenant
         if (!m.username) {
             m.username = currentUser?.username
@@ -421,8 +419,7 @@ class CrmSalesService {
         def m = CrmSalesProjectRoleType.findByParamAndTenantId(params.param, tenant)
         if (!m) {
             m = new CrmSalesProjectRoleType()
-            def args = [m, params, [include: CrmSalesProjectRoleType.BIND_WHITELIST]]
-            new BindDynamicMethod().invoke(m, 'bind', args.toArray())
+            grailsWebDataBinder.bind(m, params as SimpleMapDataBindingSource, null, CrmSalesProjectRoleType.BIND_WHITELIST, null, null)
             m.tenantId = tenant
             if (params.enabled == null) {
                 m.enabled = true
@@ -506,10 +503,8 @@ class CrmSalesService {
             throw new CrmValidationException(e.message, crmSalesProject, company, contact)
         }
 
-        def args = [crmSalesProject, params, [include: CrmSalesProject.BIND_WHITELIST]]
-        new BindDynamicMethod().invoke(crmSalesProject, 'bind', args.toArray())
+        grailsWebDataBinder.bind(crmSalesProject, params as SimpleMapDataBindingSource, null, CrmSalesProject.BIND_WHITELIST, null, null)
 
-        
         if (!crmSalesProject.status) {
             crmSalesProject.status = CrmSalesProject.withNewSession {
                 CrmSalesProjectStatus.createCriteria().get() {
@@ -621,6 +616,20 @@ class CrmSalesService {
         }
 
         return [company, contact]
+    }
+
+    CrmSalesProjectItem addItem(CrmSalesProject crmSalesProject, Map params, boolean save = false) {
+        def m = new CrmSalesProjectItem(project: crmSalesProject)
+
+        grailsWebDataBinder.bind(m, params as SimpleMapDataBindingSource, null, null, null, null)
+
+        if (m.validate()) {
+            crmSalesProject.addToItems(m)
+            if (crmSalesProject.validate() && save) {
+                crmSalesProject.save()
+            }
+        }
+        return m
     }
 
 }
